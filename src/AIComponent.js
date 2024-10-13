@@ -6,10 +6,17 @@ const AIComponent = () => {
 
     const getModelResponse = async (task) => {
         try {
+            // Fetch the API key from the environment variable
+            const apiKey = process.env.REACT_APP_OPENAI_API_KEY;
+
+            if (!apiKey) {
+                throw new Error("API key is missing. Make sure you have set it in the .env file.");
+            }
+
             const res = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer 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`, // Fake API Key
+                    Authorization: `Bearer ${apiKey}`,  // Use the environment variable for the API key
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
@@ -22,7 +29,7 @@ const AIComponent = () => {
                         },
                         {
                             role: "user",
-                            content: task // The task from the user input
+                            content: task
                         }
                     ],
                     max_tokens: 150
@@ -34,9 +41,7 @@ const AIComponent = () => {
             }
 
             const data = await res.json();
-            if (data.choices && data.choices[0]) {
-                setResponse(data.choices[0].message.content);
-            }
+            setResponse(data.choices[0].message.content);
         } catch (error) {
             console.error("Error fetching model response:", error);
             setResponse(`Error: ${error.message}`);
