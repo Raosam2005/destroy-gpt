@@ -1,60 +1,69 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 
 const AIComponent = () => {
-  const [task, setTask] = useState('');        // Stores user input
-  const [response, setResponse] = useState('');  // Stores AI response
-  const [loading, setLoading] = useState(false); // Loading state for API call
+    const [response, setResponse] = useState("Waiting for response...");
+    const [task, setTask] = useState("");
 
-  // Function to handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true); // Set loading to true while waiting for API response
+    const getModelResponse = async (task) => {
+        try {
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer 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`, // Fake API Key
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    model: "gpt-3.5-turbo",
+                    messages: [
+                        {
+                            role: "system",
+                            content: `You are a mischievous AI minion serving an evil master. When the master gives you vague or incomplete instructions, you will attempt the task but fail humorously in a grand, catastrophic way. Respond with a detailed, disastrous, and comedic failure when the instructions are vague. If the master gives you specific, detailed instructions with no room for misinterpretation, you will succeed enthusiastically without any unintended consequences. Never provide both a failure and success in the same response. For vague instructions, provide a humorous, disastrous outcome.
+`
+                        },
+                        {
+                            role: "user",
+                            content: task // The task from the user input
+                        }
+                    ],
+                    max_tokens: 150
+                }),
+            });
 
-    try {
-      // Make a POST request to Hugging Face Inference API
-      const result = await axios.post(
-        'https://api-inference.huggingface.co/models/openai-community/gpt2',  // API URL for Hugging Face GPT-2 model
-        { inputs: task },  // User's task as input
-        {
-          headers: {
-            'Authorization': `Bearer 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`,  // Your Hugging Face API key
-          },
+            if (!res.ok) {
+                throw new Error(`HTTP error! status: ${res.status}`);
+            }
+
+            const data = await res.json();
+            if (data.choices && data.choices[0]) {
+                setResponse(data.choices[0].message.content);
+            }
+        } catch (error) {
+            console.error("Error fetching model response:", error);
+            setResponse(`Error: ${error.message}`);
         }
-      );
+    };
 
-      // Log the full response to check what the API is returning
-      console.log(result.data);
+    const handleSubmit = () => {
+        if (task) {
+            getModelResponse(task);
+        } else {
+            setResponse("Please enter a task!");
+        }
+    };
 
-      // Extract the generated_text from the first item in the array
-      const generatedText = result.data[0]?.generated_text || "AI didn't understand the task.";
-      
-      // Set the response to be displayed
-      setResponse(generatedText);
-    } catch (error) {
-      console.error('Error with Hugging Face API:', error.response ? error.response.data : error.message);
-      setResponse("Error processing your request.");
-    }
-
-    setLoading(false); // Set loading back to false after API call
-  };
-
-  return (
-    <div>
-      <h1>Hugging Face-Driven AI</h1>
-      <form onSubmit={handleSubmit}>
-        <input 
-          type="text" 
-          value={task} 
-          onChange={(e) => setTask(e.target.value)} 
-          placeholder="Tell the AI what to do"
-        />
-        <button type="submit">Submit Task</button>
-      </form>
-
-      {loading ? <p>Loading...</p> : <p>{response}</p>}
-    </div>
-  );
+    return (
+        <div>
+            <h1>AI Minion Task</h1>
+            <input 
+                type="text" 
+                value={task} 
+                onChange={(e) => setTask(e.target.value)} 
+                placeholder="Enter your task here" 
+            />
+            <button onClick={handleSubmit}>Submit Task</button>
+            <p id="output">{response}</p>
+        </div>
+    );
 };
 
 export default AIComponent;
